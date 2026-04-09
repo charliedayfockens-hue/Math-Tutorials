@@ -201,9 +201,9 @@
             <h2 class="text-2xl font-semibold mb-6">Owner Access</h2>
             <p class="text-zinc-400 mb-6">Enter the owner code to unlock editing and GitHub sync.</p>
             
-            <input id="owner-code-input" 
+            <input id="owner-code-input"
                    type="password"
-                   placeholder="Cgamer@22"
+                   placeholder="Enter owner code"
                    class="w-full bg-zinc-800 border border-zinc-700 focus:border-emerald-400 rounded-3xl px-6 py-5 outline-none text-lg mb-8">
             
             <div class="flex gap-x-4">
@@ -491,10 +491,11 @@
             
             tutorials[tutIndex].title = titleInput
             tutorials[tutIndex].steps = [...tempSteps]
-            
+
             saveToLocal()
             hideEditModal()
             renderGrid()
+            autoSyncToGitHub()
         }
         
         function hideEditModal() {
@@ -543,6 +544,7 @@
             tutorials = tutorials.filter(t => t.id !== id)
             saveToLocal()
             renderGrid()
+            autoSyncToGitHub()
         }
         
         function deleteCurrentTutorial() {
@@ -551,6 +553,7 @@
             saveToLocal()
             hideEditModal()
             renderGrid()
+            autoSyncToGitHub()
         }
         
         // ================================================
@@ -682,6 +685,64 @@
             }
         }
         
+        async function autoSyncToGitHub() {
+            if (!githubConfig.owner || !githubConfig.repo || !githubConfig.token) {
+                // Config not set up yet — open the modal so they can fill it in
+                showGitHubModal()
+                return
+            }
+
+            const toast = document.createElement("div")
+            toast.style.cssText = "position:fixed;bottom:24px;right:24px;background:#3f3f46;color:white;padding:16px 24px;border-radius:9999px;box-shadow:0 25px 50px -12px rgba(0,0,0,.5);z-index:99999;font-size:14px;"
+            toast.textContent = "⏳ Syncing to GitHub..."
+            document.body.appendChild(toast)
+
+            const apiUrl = `https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${githubConfig.dataPath}`
+
+            try {
+                let sha = null
+                try {
+                    const getRes = await fetch(apiUrl, {
+                        headers: {
+                            "Authorization": `token ${githubConfig.token}`,
+                            "Accept": "application/vnd.github.v3+json"
+                        }
+                    })
+                    if (getRes.ok) sha = (await getRes.json()).sha
+                } catch (e) {}
+
+                const bodyData = {
+                    message: `Update tutorials data - ${new Date().toISOString()}`,
+                    content: btoa(unescape(encodeURIComponent(JSON.stringify(tutorials, null, 2))))
+                }
+                if (sha) bodyData.sha = sha
+
+                const putRes = await fetch(apiUrl, {
+                    method: "PUT",
+                    headers: {
+                        "Authorization": `token ${githubConfig.token}`,
+                        "Accept": "application/vnd.github.v3+json",
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(bodyData)
+                })
+
+                if (!putRes.ok) {
+                    const errText = await putRes.text()
+                    throw new Error(`GitHub API error: ${putRes.status}`)
+                }
+
+                toast.style.background = "#10b981"
+                toast.textContent = `✅ Synced to GitHub (${tutorials.length} buttons)`
+                setTimeout(() => toast.remove(), 2500)
+            } catch (err) {
+                console.error(err)
+                toast.style.background = "#ef4444"
+                toast.textContent = `❌ Sync failed: ${err.message}`
+                setTimeout(() => toast.remove(), 4000)
+            }
+        }
+
         async function pushToGitHub() {
             if (!githubConfig.token) {
                 alert("Personal Access Token required to push changes")
