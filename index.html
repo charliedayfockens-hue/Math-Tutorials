@@ -24,6 +24,8 @@
     //  Each proxy has a title and a list of steps.
     //  Each step has:
     //    text  — the instruction text
+    //    link  — (optional) a URL that appears as a clickable "Link 1", "Link 2" etc.
+    //             under that step. Leave "" if you don't need a link on that step.
     //    media — (optional) paste an image URL or YouTube link, or leave ""
     //
     //  To add a new proxy, copy one of the blocks below and paste it
@@ -35,30 +37,30 @@
         {
             title: "Ultra Proxy Activation",
             steps: [
-                { text: "Open any browser on your school device.", media: "" },
-                { text: "Go to your proxy URL — paste your real link here.", media: "" },
-                { text: "Paste the blocked site URL into the proxy bar.", media: "" },
-                { text: "Click GO or Browse.", media: "" },
-                { text: "You now have full access — enjoy your 'Math Tutorials'!", media: "" }
+                { text: "Open any browser on your school device.", link: "", media: "" },
+                { text: "Go to your proxy URL — paste your real link here.", link: "https://example.com", media: "" },
+                { text: "Paste the blocked site URL into the proxy bar.", link: "", media: "" },
+                { text: "Click GO or Browse.", link: "", media: "" },
+                { text: "You now have full access — enjoy your 'Math Tutorials'!", link: "", media: "" }
             ]
         },
         {
             title: "Quick Browser Proxy",
             steps: [
-                { text: "Open Chrome or Edge settings.", media: "" },
-                { text: "Search for 'proxy' in settings.", media: "" },
-                { text: "Configure manual proxy with your school bypass details.", media: "" },
-                { text: "Save and restart the browser.", media: "" },
-                { text: "Test access to blocked resources.", media: "" }
+                { text: "Open Chrome or Edge settings.", link: "", media: "" },
+                { text: "Search for 'proxy' in settings.", link: "", media: "" },
+                { text: "Configure manual proxy with your school bypass details.", link: "", media: "" },
+                { text: "Save and restart the browser.", link: "", media: "" },
+                { text: "Test access to blocked resources.", link: "", media: "" }
             ]
         },
         {
             title: "Advanced Method",
             steps: [
-                { text: "Use this entry as a template.", media: "" },
-                { text: "Add your custom proxy instructions here.", media: "" },
-                { text: "You can have as many steps as you need.", media: "" },
-                { text: "Add an image or YouTube link to any step using the media field.", media: "" }
+                { text: "Use this entry as a template.", link: "", media: "" },
+                { text: "Add your custom proxy instructions here.", link: "", media: "" },
+                { text: "You can have as many steps as you need.", link: "", media: "" },
+                { text: "Add a link to any step — it shows as 'Link 1', 'Link 2', etc.", link: "https://example.com", media: "" }
             ]
         }
     ]
@@ -188,13 +190,28 @@
             if (!proxy) return
 
             document.getElementById("modal-title").textContent = proxy.title
+
+            let linkCounter = 0
             document.getElementById("modal-body").innerHTML =
                 `<ol class="list-decimal pl-5 space-y-6 text-lg">` +
                 proxy.steps.map(step => {
                     const text  = typeof step === "string" ? step : (step.text  || "")
+                    const link  = typeof step === "string" ? ""   : (step.link  || "")
                     const media = typeof step === "string" ? ""   : (step.media || "")
+                    let linkHTML = ""
+                    if (link.trim()) {
+                        linkCounter++
+                        linkHTML = `<a href="${escapeHtml(link.trim())}"
+                                       target="_blank" rel="noopener noreferrer"
+                                       class="inline-flex items-center gap-1 mt-2 px-4 py-1.5 text-sm font-medium
+                                              bg-emerald-500/10 text-emerald-400 border border-emerald-500/30
+                                              rounded-full hover:bg-emerald-500/20 transition-colors">
+                                        🔗 Link ${linkCounter}
+                                    </a>`
+                    }
                     return `<li class="text-zinc-200">
                                 <span>${escapeHtml(text)}</span>
+                                ${linkHTML}
                                 ${renderMedia(media)}
                             </li>`
                 }).join("") +
